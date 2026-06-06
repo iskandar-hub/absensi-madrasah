@@ -76,7 +76,7 @@ export default function DashboardPage() {
       supabase
         .from("students")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id),
+        .eq("user_id", user.id)
         .eq("status", "aktif"),
 
       supabase
