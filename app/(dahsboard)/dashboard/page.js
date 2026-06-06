@@ -81,7 +81,7 @@ export default function DashboardPage() {
 
       supabase
         .from("attendances")
-        .select("id, student_id", { count: "exact", head: true })
+        .select("id", { count: "exact", head: true })
         .eq("user_id", user.id)
         .eq("tanggal", today),
 
