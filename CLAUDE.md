@@ -1,413 +1,269 @@
 @AGENTS.md
-# 📚 Panduan Lengkap Aplikasi Absensi Madrasah
-> Stack: **Next.js + Supabase + Vercel** | Dibuat: 2026
+# CLAUDE.md — Konteks Project Absensi Madrasah
+
+> File ini dibaca otomatis oleh Claude Code setiap kali sesi baru dimulai.
+> Letakkan file ini di root folder project: `absensi-madrasah/CLAUDE.md`
 
 ---
 
-## 🗺️ Gambaran Besar
+## Ringkasan Project
 
-Aplikasi absensi berbasis web publik untuk madrasah dengan fitur:
-- Login via akun Google (tanpa admin terpusat — setiap pengguna adalah admin untuk datanya sendiri)
-- Multi-sekolah & multi-kelas per pengguna
-- Absensi H/S/I/A + tombol Hadir Semua
-- Penilaian Kurikulum Merdeka KBC Kemenag (Formatif & Sumatif)
-- Jurnal guru format Kemenag
-- Rekap + export PDF & Excel
+Aplikasi web absensi siswa madrasah berbasis **Next.js App Router + Supabase + Vercel**.  
+Ditujukan untuk guru/wali kelas di lingkungan madrasah (Kemenag RI).  
+Setiap pengguna login via Google dan menjadi admin penuh untuk data mereka sendiri (no central admin).
 
 ---
 
-## ✅ FASE 1 — Setup Akun & Tools
+## Stack Teknologi
 
-### 1.1 Install Node.js
-1. Buka https://nodejs.org
-2. Klik tombol **LTS** → download & install
-3. Buka Command Prompt (`Win + R` → ketik `cmd` → Enter)
-4. Verifikasi:
-   ```
-   node --version
-   ```
-   Harus muncul `v20.x.x` atau lebih tinggi
+| Layer | Teknologi |
+|-------|-----------|
+| Frontend & Backend | Next.js 14 (App Router) |
+| Database | Supabase (PostgreSQL) |
+| Auth | Supabase Auth + Google OAuth |
+| Styling | Tailwind CSS |
+| Hosting | Vercel |
+| PDF Export | jspdf + jspdf-autotable |
+| Excel Export | xlsx (SheetJS) |
 
-### 1.2 Install VS Code
-1. Buka https://code.visualstudio.com → Download for Windows → install
-2. Buka VS Code, install extension berikut (ikon kotak-kotak di sidebar kiri):
-   - `ES7+ React/Redux/React-Native snippets`
-   - `Tailwind CSS IntelliSense`
-   - `Prettier - Code formatter`
+---
 
-### 1.3 Buat Akun GitHub
-1. Buka https://github.com → Sign up
-2. Daftar dengan email → pilih plan **Free** → verifikasi email
+## Struktur Folder
 
-### 1.4 Buat Akun Supabase
-1. Buka https://supabase.com → Start your project
-2. Login dengan akun GitHub
-3. Klik **New project**, isi:
-   - Name: `absensi-madrasah`
-   - Database Password: *(buat kuat, catat di tempat aman!)*
-   - Region: **Southeast Asia (Singapore)**
-4. Klik **Create new project** → tunggu ~2 menit
-
-### 1.5 Buat Akun Vercel
-1. Buka https://vercel.com → Sign Up
-2. Pilih **Continue with GitHub**
-
-### 1.6 Buat Project Next.js
-Buka Command Prompt, jalankan:
-```bash
-cd Desktop
-npx create-next-app@latest absensi-madrasah
 ```
-Jawab pertanyaan:
-```
-TypeScript?          → No
-ESLint?              → Yes
-Tailwind CSS?        → Yes
-src/ directory?      → No
-App Router?          → Yes
-Customize import?    → No
-```
-Lalu buka project di VS Code:
-```bash
-cd absensi-madrasah
-code .
+absensi-madrasah/
+├── app/
+│   ├── layout.js                  ← Root layout + Navbar
+│   ├── page.js                    ← Landing / Login Google
+│   ├── dashboard/page.js          ← Dashboard ringkasan
+│   ├── sekolah/page.js            ← CRUD sekolah
+│   ├── kelas/
+│   │   ├── page.js                ← Daftar kelas
+│   │   └── [id]/page.js           ← Detail kelas
+│   ├── siswa/[kelasId]/page.js    ← CRUD siswa per kelas
+│   ├── absensi/[kelasId]/page.js  ← Form absensi harian
+│   ├── penilaian/[kelasId]/page.js← Input nilai KBC
+│   ├── jurnal/page.js             ← Jurnal guru
+│   └── rekap/page.js              ← Rekap + export
+├── components/
+│   ├── Navbar.js
+│   ├── Sidebar.js
+│   ├── StudentTable.js
+│   ├── AbsensiForm.js
+│   ├── NilaiForm.js
+│   └── JurnalForm.js
+├── lib/
+│   └── supabase.js                ← Supabase client
+├── .env.local                     ← JANGAN di-commit ke GitHub
+├── CLAUDE.md                      ← File ini
+└── PANDUAN_APLIKASI_ABSENSI_MADRASAH.md
 ```
 
 ---
 
-## ✅ FASE 2 — Setup Database Supabase
+## Skema Database Supabase
 
-### 2.1 Buat Tabel di Supabase
+### Relasi Antar Tabel
+```
+auth.users (Supabase)
+    └── schools         (user_id FK)
+            └── classes (school_id FK, user_id FK)
+                    ├── students      (class_id FK, user_id FK)
+                    │       ├── attendances (student_id FK)
+                    │       └── grades      (student_id FK)
+                    └── journals      (class_id FK, user_id FK)
+```
 
-Masuk ke **Supabase Dashboard** → pilih project → klik **SQL Editor** → jalankan SQL berikut:
+### Tabel Utama
 
+**schools** — data sekolah  
+`id · user_id · nama · npsn · kepala_sekolah · alamat · created_at`
+
+**classes** — data kelas  
+`id · school_id · user_id · nama_kelas · tingkat · tahun_ajaran · wali_kelas · created_at`
+
+**students** — data siswa  
+`id · class_id · user_id · nomor_absen · nama · nisn · jenis_kelamin(L/P) · created_at`
+
+**attendances** — absensi harian  
+`id · student_id · class_id · user_id · tanggal · status(H/S/I/A) · keterangan · created_at`
+
+**grades** — nilai Kurikulum Merdeka KBC Kemenag  
+`id · student_id · class_id · user_id · mata_pelajaran · semester · tahun_ajaran`  
+`· formatif_1..4 · rata_formatif · sumatif_tengah · sumatif_akhir · nilai_p5`  
+`· nilai_akhir · predikat · capaian_kompetensi · created_at`
+
+**journals** — jurnal guru format Kemenag  
+`id · class_id · user_id · tanggal · mata_pelajaran · pertemuan_ke`  
+`· tujuan_pembelajaran · alur_tujuan_pembelajaran · materi_pokok`  
+`· model_pembelajaran · metode_pembelajaran · media_pembelajaran`  
+`· kegiatan_pendahuluan · kegiatan_inti · kegiatan_penutup`  
+`· penilaian_proses · refleksi_guru · tindak_lanjut`  
+`· jumlah_hadir · jumlah_sakit · jumlah_izin · jumlah_alpha · created_at`
+
+---
+
+## Aturan Row Level Security (RLS)
+
+**Semua tabel menggunakan pola yang sama:**
 ```sql
--- Tabel sekolah (milik tiap pengguna)
-CREATE TABLE schools (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  nama TEXT NOT NULL,
-  npsn TEXT,
-  alamat TEXT,
-  kepala_sekolah TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+alter table NAMA_TABEL enable row level security;
 
--- Tabel kelas
-CREATE TABLE classes (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  nama_kelas TEXT NOT NULL,
-  tingkat TEXT,
-  tahun_ajaran TEXT,
-  wali_kelas TEXT
-);
-
--- Tabel siswa
-CREATE TABLE students (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  nomor_urut INT,
-  nama TEXT NOT NULL,
-  nisn TEXT,
-  jenis_kelamin TEXT CHECK (jenis_kelamin IN ('L', 'P'))
-);
-
--- Tabel absensi
-CREATE TABLE attendances (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  student_id UUID REFERENCES students(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  tanggal DATE NOT NULL,
-  status TEXT CHECK (status IN ('H', 'S', 'I', 'A')) DEFAULT 'H',
-  keterangan TEXT
-);
-
--- Tabel penilaian (Kurikulum Merdeka KBC Kemenag)
-CREATE TABLE grades (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  student_id UUID REFERENCES students(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  mapel TEXT NOT NULL,
-  semester INT CHECK (semester IN (1, 2)),
-  tahun_ajaran TEXT,
-  -- Formatif
-  nilai_formatif_1 NUMERIC(5,2),
-  nilai_formatif_2 NUMERIC(5,2),
-  nilai_formatif_3 NUMERIC(5,2),
-  rata_formatif NUMERIC(5,2),
-  -- Sumatif Tengah Semester
-  nilai_sts NUMERIC(5,2),
-  -- Sumatif Akhir Semester
-  nilai_sas NUMERIC(5,2),
-  -- Nilai Akhir (otomatis dihitung)
-  nilai_akhir NUMERIC(5,2),
-  predikat TEXT,
-  deskripsi TEXT
-);
-
--- Tabel jurnal guru
-CREATE TABLE journals (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  tanggal DATE NOT NULL,
-  mapel TEXT,
-  pertemuan_ke INT,
-  tujuan_pembelajaran TEXT,
-  materi_pokok TEXT,
-  kegiatan_pembukaan TEXT,
-  kegiatan_inti TEXT,
-  kegiatan_penutup TEXT,
-  media_pembelajaran TEXT,
-  penilaian TEXT,
-  refleksi TEXT,
-  tindak_lanjut TEXT
-);
+create policy "Users manage own data"
+on NAMA_TABEL for all
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
 ```
 
-### 2.2 Aktifkan Row Level Security (RLS)
-
-Jalankan di SQL Editor Supabase:
-
-```sql
--- Aktifkan RLS semua tabel
-ALTER TABLE schools ENABLE ROW LEVEL SECURITY;
-ALTER TABLE classes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE students ENABLE ROW LEVEL SECURITY;
-ALTER TABLE attendances ENABLE ROW LEVEL SECURITY;
-ALTER TABLE grades ENABLE ROW LEVEL SECURITY;
-ALTER TABLE journals ENABLE ROW LEVEL SECURITY;
-
--- Policy: user hanya bisa akses data miliknya sendiri
-CREATE POLICY "user owns schools" ON schools FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "user owns classes" ON classes FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "user owns students" ON students FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "user owns attendances" ON attendances FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "user owns grades" ON grades FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "user owns journals" ON journals FOR ALL USING (auth.uid() = user_id);
-```
-
-### 2.3 Aktifkan Google OAuth di Supabase
-
-1. Di Supabase Dashboard → **Authentication** → **Providers**
-2. Klik **Google** → aktifkan toggle
-3. Catat **Callback URL** (format: `https://xxx.supabase.co/auth/v1/callback`)(https://pbdnqevzmwanxpmrrbue.supabase.co/auth/v1/callback)(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)
-4. Buka https://console.cloud.google.com → buat project baru
-5. Masuk ke **APIs & Services** → **Credentials** → **Create Credentials** → **OAuth 2.0 Client ID**
-6. Pilih **Web application**, isi Authorized redirect URIs dengan Callback URL dari Supabase
-7. Salin **Client ID** dan **Client Secret** → paste ke Supabase Google Provider
-8. Klik **Save**
+Tidak ada role admin global. Setiap user hanya bisa akses data miliknya sendiri.
 
 ---
 
-## ✅ FASE 3 — Setup Project Next.js
+## Konvensi Koding
 
-### 3.1 Install Dependencies
+### Bahasa & Istilah
+- Semua UI label dalam **Bahasa Indonesia**
+- Komentar kode boleh campuran Indonesia/Inggris
+- Nama variabel/fungsi dalam **bahasa Inggris** (camelCase)
+- Nama tabel database dalam **bahasa Inggris** (snake_case)
 
-Buka Terminal di VS Code (`Ctrl + `` ` ``), jalankan:
-
-```bash
-npm install @supabase/supabase-js @supabase/ssr
-npm install lucide-react
-npm install jspdf jspdf-autotable
-npm install xlsx
-npm install react-to-print
-```
-
-### 3.2 Ambil Kredensial Supabase
-
-Di Supabase Dashboard → **Project Settings** → **API**:
-- Catat **Project URL** (https://pbdnqevzmwanxpmrrbue.supabase.co/rest/v1/)
-- Catat **anon public** key (eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBiZG5xZXZ6bXdhbnhwbXJyYnVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMTkzNzAsImV4cCI6MjA5NTg5NTM3MH0.lL7YMVcn22vWE7Er3Sy3m3jPO06-c7ebgFFwwEaRYH4)
-
-### 3.3 Buat File .env.local
-
-Di root project, buat file `.env.local`:
-```
-NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxxx...
-```
-
-### 3.4 Buat Konfigurasi Supabase
-
-Buat file `lib/supabase.js`:
+### Pola Fetch Data dari Supabase
 ```javascript
-import { createBrowserClient } from '@supabase/ssr'
+// Selalu gunakan async/await
+// Selalu handle error
+// RLS otomatis filter berdasarkan user yang login
 
-export function createClient() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  )
+const { data, error } = await supabase
+  .from('students')
+  .select('*')
+  .eq('class_id', kelasId)
+  .order('nomor_absen', { ascending: true })
+
+if (error) {
+  console.error('Error:', error.message)
+  return
 }
 ```
 
-### 3.5 Push ke GitHub
+### Pola Insert / Update
+```javascript
+// Insert
+const { error } = await supabase
+  .from('attendances')
+  .insert({
+    student_id: siswaId,
+    class_id: kelasId,
+    user_id: user.id,        // ← selalu sertakan user_id
+    tanggal: tanggalHariIni,
+    status: 'H'
+  })
+
+// Upsert (insert atau update kalau sudah ada)
+const { error } = await supabase
+  .from('attendances')
+  .upsert({ ...data }, { onConflict: 'student_id,tanggal' })
+```
+
+### Komponen React
+```javascript
+'use client'   // ← tambahkan di komponen yang pakai useState/useEffect
+import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase'
+
+export default function NamaKomponen() {
+  const [loading, setLoading] = useState(true)
+  // ...
+}
+```
+
+---
+
+## Fitur Per Halaman
+
+### `/absensi/[kelasId]`
+- Tampilkan semua siswa di kelas tersebut
+- Default status = belum diisi
+- Tombol H / S / I / A per baris siswa
+- Tombol **"Hadir Semua"** → set semua siswa ke H
+- Auto-save ke database setiap klik (upsert)
+- Filter tanggal (default: hari ini)
+
+### `/penilaian/[kelasId]`
+Komponen nilai sesuai Kurikulum Merdeka KBC Kemenag:
+- **Formatif**: penilaian proses/harian (bisa 1–4 kali per semester)
+- **Sumatif Tengah Semester (STS)**: ujian tengah semester
+- **Sumatif Akhir Semester (SAS)**: ujian akhir semester
+- **P5**: Projek Penguatan Profil Pelajar Pancasila
+- **Nilai Akhir** = dihitung otomatis (rumus sesuai juknis Kemenag)
+- **Predikat**: A (≥91), B (81–90), C (71–80), D (≤70)
+- **Capaian Kompetensi**: deskripsi narasi (input teks bebas)
+
+### `/jurnal`
+Form jurnal harian guru, komponen (format Kemenag):
+1. Identitas: tanggal, kelas, mapel, pertemuan ke-
+2. Tujuan Pembelajaran (TP)
+3. Alur Tujuan Pembelajaran (ATP)
+4. Materi Pokok
+5. Model & Metode & Media Pembelajaran
+6. Langkah Kegiatan: Pendahuluan · Inti · Penutup
+7. Penilaian Proses
+8. Refleksi Guru & Tindak Lanjut
+9. Kehadiran: H/S/I/A (tarik otomatis dari data absensi hari itu)
+
+### `/rekap`
+- Filter: kelas + bulan/semester + tahun ajaran
+- Tabel rekap absensi: total H/S/I/A per siswa
+- Tabel rekap nilai: semua mapel per siswa
+- Tombol: **Download PDF** · **Download Excel** · **Cetak**
+
+---
+
+## Environment Variables
+
+```env
+# .env.local — JANGAN commit ke GitHub
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxxxxxxxxxx...
+```
+
+Nilai ini ada di: Supabase Dashboard → Settings → API
+
+---
+
+## Perintah yang Sering Dipakai
 
 ```bash
-git init
+npm run dev          # Jalankan di localhost:3000
+npm run build        # Build production
+npm run lint         # Cek error kode
+
 git add .
-git commit -m "Initial setup"
-git branch -M main
-git remote add origin https://github.com/USERNAME/absensi-madrasah.git
-git push -u origin main
+git commit -m "feat: tambah fitur absensi"
+git push             # Auto-deploy ke Vercel
 ```
 
-### 3.6 Deploy ke Vercel
+---
 
-1. Buka https://vercel.com → **New Project**
-2. Import repository `absensi-madrasah` dari GitHub
-3. Di bagian **Environment Variables**, tambahkan:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-4. Klik **Deploy**
+## Status Progress
+
+- [ ] Fase 1: Setup akun & tools
+- [ ] Fase 2: Setup database Supabase
+- [ ] Fase 3: Setup project Next.js + deploy awal
+- [ ] Fase 4: Halaman Login, Sekolah, Kelas, Siswa
+- [ ] Fase 5: Absensi & Penilaian
+- [ ] Fase 6: Jurnal Guru
+- [ ] Fase 7: Rekap, Export PDF/Excel, Cetak
 
 ---
 
-## ✅ FASE 4 — Halaman Login, Sekolah, Kelas, Siswa
+## Catatan Developer
 
-### Struktur Folder
-```
-app/
-├── page.js                  ← Landing page / login
-├── dashboard/
-│   └── page.js              ← Dashboard utama
-├── sekolah/
-│   └── page.js              ← Manajemen sekolah
-├── kelas/
-│   ├── page.js              ← Daftar kelas
-│   └── [id]/
-│       └── page.js          ← Detail kelas
-├── siswa/
-│   └── [kelasId]/
-│       └── page.js          ← Daftar siswa per kelas
-└── auth/
-    └── callback/
-        └── route.js         ← Handler OAuth Google
-```
-
-### Fitur yang dibangun di Fase ini:
-- [ ] Halaman login dengan tombol "Masuk dengan Google"
-- [ ] Redirect otomatis ke dashboard setelah login
-- [ ] CRUD Sekolah (tambah, edit, hapus, bisa lebih dari satu)
-- [ ] CRUD Kelas (per sekolah, bisa lebih dari satu)
-- [ ] CRUD Siswa (per kelas, dengan kolom No, Nama, Jenis Kelamin)
-- [ ] Import siswa dari Excel (opsional)
+- Owner/pembuat: Lalu (madrasah, NTB)
+- Dibimbing oleh: Claude (claude.ai)
+- Target pengguna: guru/wali kelas madrasah, multi-sekolah
+- Kurikulum: Merdeka Belajar KBC Kemenag RI
+- Absensi: H (Hadir) · S (Sakit) · I (Izin) · A (Alpha/Tanpa Keterangan)
 
 ---
 
-## ✅ FASE 5 — Absensi & Penilaian
-
-### Fitur Absensi:
-- [ ] Tampilan daftar siswa per kelas dengan 4 tombol: H / S / I / A
-- [ ] Tombol **"Hadir Semua"** — set semua siswa ke H sekaligus
-- [ ] Pilih tanggal (default: hari ini)
-- [ ] Auto-save saat klik status
-- [ ] Rekap per hari di bagian bawah: jumlah H/S/I/A
-
-### Fitur Penilaian KBC Kemenag (Kurikulum Merdeka):
-
-**Komponen Penilaian:**
-| Komponen | Bobot | Keterangan |
-|---|---|---|
-| Formatif (rata-rata) | 40% | Minimal 3 kali penilaian |
-| Sumatif Tengah Semester (STS) | 30% | 1 kali per semester |
-| Sumatif Akhir Semester (SAS) | 30% | 1 kali per semester |
-
-**Predikat Nilai:**
-| Nilai Akhir | Predikat |
-|---|---|
-| 90 – 100 | A (Sangat Baik) |
-| 75 – 89 | B (Baik) |
-| 60 – 74 | C (Cukup) |
-| < 60 | D (Perlu Bimbingan) |
-
-- [ ] Input nilai per siswa per mapel
-- [ ] Kalkulasi otomatis nilai akhir & predikat
-- [ ] Generate deskripsi otomatis per mapel
-
----
-
-## ✅ FASE 6 — Jurnal Guru (Format Kemenag)
-
-### Kolom Jurnal:
-- Tanggal
-- Mata Pelajaran
-- Pertemuan ke-
-- Tujuan Pembelajaran (TP)
-- Materi Pokok
-- Kegiatan Pembukaan
-- Kegiatan Inti
-- Kegiatan Penutup
-- Media/Alat Pembelajaran
-- Penilaian yang dilakukan
-- Refleksi
-- Tindak Lanjut
-
-- [ ] Form input jurnal per pertemuan
-- [ ] Daftar jurnal per bulan
-- [ ] Export jurnal ke PDF format resmi Kemenag
-
----
-
-## ✅ FASE 7 — Rekap, Export PDF & Excel
-
-### Rekap Absensi:
-- [ ] Rekap bulanan per kelas (tabel: siswa vs tanggal)
-- [ ] Rekap per siswa (total H/S/I/A per bulan/semester)
-- [ ] Persentase kehadiran otomatis
-
-### Rekap Nilai:
-- [ ] Legger nilai per kelas (semua mapel)
-- [ ] Nilai per siswa lengkap
-
-### Export:
-- [ ] Download PDF rekap absensi
-- [ ] Download Excel rekap absensi
-- [ ] Download PDF rekap nilai / rapor ringkas
-- [ ] Cetak langsung dari browser (`window.print()`)
-
----
-
-## 🔑 Catatan Penting
-
-### Kredensial yang Harus Dicatat (simpan dengan aman!):
-- [ ] Email & password GitHub
-- [ ] Email & password Supabase
-- [ ] Database password Supabase
-- [ ] Email & password Vercel
-- [ ] Google Cloud Client ID & Client Secret
-- [ ] Supabase Project URL & Anon Key
-
-### Alur Update Kode:
-1. Edit kode di VS Code
-2. Simpan file (`Ctrl + S`)
-3. Jalankan di lokal: `npm run dev` → buka http://localhost:3000
-4. Jika sudah oke, push ke GitHub:
-   ```bash
-   git add .
-   git commit -m "Deskripsi perubahan"
-   git push
-   ```
-5. Vercel otomatis deploy ulang dalam ~1 menit
-
----
-
-## 🆘 Troubleshooting Umum
-
-| Masalah | Solusi |
-|---|---|
-| `command not found: node` | Node.js belum terinstall, ulangi langkah 1.1 |
-| Error saat `npx create-next-app` | Coba: `npx create-next-app@latest --use-npm` |
-| Supabase tidak bisa connect | Cek `.env.local` — URL dan Key harus benar |
-| Login Google gagal | Cek Callback URL di Google Console dan Supabase |
-| Deploy Vercel gagal | Cek environment variables sudah diisi |
-| `npm install` error | Coba hapus `node_modules` lalu `npm install` ulang |
-
----
-
-*Panduan ini dibuat untuk proyek Aplikasi Absensi Madrasah berbasis Next.js + Supabase + Vercel*
-*Minta panduan detail setiap fase ke Claude saat siap melanjutkan.*
+*Update file ini setiap kali ada perubahan arsitektur atau keputusan teknis penting.*

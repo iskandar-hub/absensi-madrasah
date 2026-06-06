@@ -34,3 +34,71 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+```
+absensi-madrasah
+├─ AGENTS.md
+├─ app
+│  ├─ (dahsboard)
+│  │  ├─ absensi
+│  │  │  └─ [kelasId]
+│  │  │     └─ page.js
+│  │  ├─ dashboard
+│  │  │  └─ page.js
+│  │  ├─ jurnal
+│  │  │  └─ page.js
+│  │  ├─ kelas
+│  │  │  ├─ page.js
+│  │  │  └─ [id]
+│  │  │     └─ page.js
+│  │  ├─ layout.js
+│  │  ├─ penilaian
+│  │  │  └─ [kelasId]
+│  │  │  |   └─ page.js
+|  |  |  |   └─ [assesments]
+|  |  |  |      └─page.js
+|  |  |  └─page.js
+│  │  ├─ rekap
+│  │  │  └─ page.js
+│  │  ├─ sekolah
+│  │  │  └─ page.js
+│  │  └─ siswa
+│  │     └─ [kelasId]
+│  │        └─ page.js
+│  ├─ auth
+│  │  └─ callback
+│  │     └─ route.js
+│  ├─ favicon.ico
+│  ├─ globals.css
+│  ├─ layout.js
+│  └─ page.js
+├─ CLAUDE.md
+├─ components
+│  ├─ AbsensiForm.js
+│  ├─ JurnalForm.js
+│  ├─ MobileNav.js
+│  ├─ Navbar.js
+│  ├─ NilaiForm.js
+│  ├─ Sidebar.js
+│  └─ StudentTable.js
+├─ eslint.config.mjs
+├─ lib
+│  └─ supabase.js
+├─ next.config.ts
+├─ package-lock.json
+├─ package.json
+├─ PANDUAN.md
+├─ postcss.config.mjs
+├─ public
+│  ├─ file.svg
+│  ├─ globe.svg
+│  ├─ grid.svg
+│  ├─ logo-nw.png
+│  ├─ next.svg
+│  ├─ vercel.svg
+│  └─ window.svg
+├─ README.md
+├─ tailwind.config.js
+└─ tsconfig.json
+
+```
