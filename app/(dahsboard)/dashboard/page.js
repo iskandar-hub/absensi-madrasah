@@ -77,10 +77,11 @@ export default function DashboardPage() {
         .from("students")
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id),
+        .eq("status", "aktif"),
 
       supabase
         .from("attendances")
-        .select("id", { count: "exact", head: true })
+        .select("id, student_id", { count: "exact", head: true })
         .eq("user_id", user.id)
         .eq("tanggal", today),
 
