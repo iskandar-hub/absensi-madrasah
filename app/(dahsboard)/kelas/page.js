@@ -124,7 +124,8 @@ export default function KelasPage() {
     const { data: siswaData } = await supabase
       .from("students")
       .select("class_id")
-      .in("class_id", kelasList.map((k) => k.id));
+      .in("class_id", kelasList.map((k) => k.id))
+      .eq("status", "aktif");
 
     // Hitung jumlah siswa per class_id
     const countMap = (siswaData || []).reduce((acc, row) => {
