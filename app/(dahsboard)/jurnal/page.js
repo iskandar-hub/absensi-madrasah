@@ -257,13 +257,18 @@ export default function JurnalPage() {
       alternateRowStyles: { fillColor: [240, 253, 244] },
     });
 
-    // Tanda tangan
+    // Tanda tangan — rata tengah seperti versi cetak
     const finalY = doc.lastAutoTable.finalY + 10;
+    const ttX = pageW - 14;          // tepi kanan area tanda tangan
+    const ttW = 70;                  // lebar blok tanda tangan
+    const ttL = ttX - ttW;           // tepi kiri blok
+    const ttCx = ttL + ttW / 2;     // titik tengah blok
+
     doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-    doc.text("Mengetahui,",          pageW - 64, finalY);
-    doc.text("Kepala Madrasah",      pageW - 64, finalY + 5);
-    doc.line(pageW - 84, finalY + 23, pageW - 14, finalY + 23);
-    doc.text(kepala, pageW - 49, finalY + 27, { align: "left" });
+    doc.text("Mengetahui,",              ttCx, finalY,      { align: "center" });
+    doc.text(`Kepala ${namaSekolah}`,    ttCx, finalY + 5,  { align: "center" });
+    doc.line(ttL, finalY + 25, ttX, finalY + 25);
+    doc.text(kepala,                     ttCx, finalY + 29, { align: "center" });
 
     const fileName = `Jurnal_Guru_${namaKelasExport().replace(/\s/g, "_")}.pdf`;
     doc.save(fileName);
