@@ -17,15 +17,19 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono",
 });
 
+// Pisah metadata dan viewport menjadi 2 export terpisah
 export const metadata = {
   title: "Absensi Madrasah",
   manifest: '/manifest.json',
-  themeColor: '#16a34a',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: 'Absensi Madrasah',
   },
+};
+
+export const viewport = {
+  themeColor: '#16a34a',
 };
 
 export default function RootLayout({ children }) {
