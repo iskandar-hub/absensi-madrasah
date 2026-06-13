@@ -244,9 +244,9 @@ export default function JurnalPage() {
       headStyles: { fillColor: [22, 163, 74], textColor: 255, fontStyle: "bold", halign: "center" },
       columnStyles: {
       0: { cellWidth: 8,      halign: "center" },
-      1: { cellWidth: 52 },
+      1: { cellWidth: 44 },
       2: { cellWidth: 28 },
-      3: { cellWidth: 35 },
+      3: { cellWidth: 30 },
       4: { cellWidth: 10,     halign: "center" },
       5: { cellWidth: "auto" },
       6: { cellWidth: 8,      halign: "center" },
