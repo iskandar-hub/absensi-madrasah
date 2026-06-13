@@ -261,9 +261,9 @@ export default function JurnalPage() {
     const finalY = doc.lastAutoTable.finalY + 10;
     doc.setFont("helvetica", "normal"); doc.setFontSize(9);
     doc.text("Mengetahui,",          pageW - 64, finalY);
-    doc.text(`Kepala ${namaSekolah}`, pageW - 64, finalY + 5);
+    doc.text("Kepala Madrasah",      pageW - 64, finalY + 5);
     doc.line(pageW - 84, finalY + 23, pageW - 14, finalY + 23);
-    doc.text(kepala, pageW - 49, finalY + 27, { align: "center" });
+    doc.text(kepala, pageW - 49, finalY + 27, { align: "left" });
 
     const fileName = `Jurnal_Guru_${namaKelasExport().replace(/\s/g, "_")}.pdf`;
     doc.save(fileName);
