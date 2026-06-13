@@ -19,6 +19,13 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata = {
   title: "Absensi Madrasah",
+  manifest: '/manifest.json',
+  themeColor: '#16a34a',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Absensi Madrasah',
+  },
 };
 
 export default function RootLayout({ children }) {
