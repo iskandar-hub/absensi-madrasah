@@ -178,7 +178,7 @@ export default function JurnalPage() {
       return;
     }
 
-    const doc   = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const doc   = new jsPDF({ orientation: "landscape", unit: "mm", format: [215, 330] });
     const pageW = doc.internal.pageSize.getWidth();
     const cx    = pageW / 2;
 
@@ -243,17 +243,17 @@ export default function JurnalPage() {
       styles: { font: "helvetica", fontSize: 8, cellPadding: 2, valign: "middle" },
       headStyles: { fillColor: [22, 163, 74], textColor: 255, fontStyle: "bold", halign: "center" },
       columnStyles: {
-        0: { cellWidth: 8,      halign: "center" },
-        1: { cellWidth: 44 },
-        2: { cellWidth: 24 },
-        3: { cellWidth: 30 },
-        4: { cellWidth: 10,     halign: "center" },
-        5: { cellWidth: "auto" },
-        6: { cellWidth: 8,      halign: "center" },
-        7: { cellWidth: 8,      halign: "center" },
-        8: { cellWidth: 8,      halign: "center" },
-        9: { cellWidth: 8,      halign: "center" },
-      },
+      0: { cellWidth: 8,      halign: "center" },
+      1: { cellWidth: 52 },
+      2: { cellWidth: 28 },
+      3: { cellWidth: 35 },
+      4: { cellWidth: 10,     halign: "center" },
+      5: { cellWidth: "auto" },
+      6: { cellWidth: 8,      halign: "center" },
+      7: { cellWidth: 8,      halign: "center" },
+      8: { cellWidth: 8,      halign: "center" },
+      9: { cellWidth: 8,      halign: "center" },
+    },
       alternateRowStyles: { fillColor: [240, 253, 244] },
     });
 
@@ -306,7 +306,7 @@ export default function JurnalPage() {
       {/* CSS Print */}
       <style>{`
         @media print {
-          @page { size: A4 landscape; margin: 15mm; }
+          @page { size: 330mm 215mm landscape; margin: 15mm; }
           .navbar, .sidebar, .mobile-nav,
           .no-print, .page-header, .breadcrumb,
           .filter-card, .jurnal-list,
