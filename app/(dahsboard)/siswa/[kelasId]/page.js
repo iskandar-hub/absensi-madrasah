@@ -997,7 +997,7 @@ export default function SiswaPage() {
                   {siswaFiltered.map((siswa, idx) => (
                     <tr key={siswa.id}>
                       <td className="col-no" style={{ fontWeight: 600, textAlign: 'center', color: 'var(--clr-text-muted)', fontSize: 13 }}>
-                        {siswa.nomor_urut || idx + 1}
+                        {idx + 1}
                       </td>
                       <td className="col-nama">
                         <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--clr-text)' }} title={siswa.nama}>
