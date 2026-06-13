@@ -797,7 +797,7 @@ export default function SiswaPage() {
           transition: background 0.15s;
         }
         .siswa-table tbody tr:last-child { border-bottom: none; }
-        .siswa-table tbody tr:hover { background: var(--clr-primary-50); }
+        .siswa-table tbody tr:hover { background: var(--clr-primary-500); }
         .siswa-table tbody td {
           padding: 10px 10px;
           color: var(--clr-text);
