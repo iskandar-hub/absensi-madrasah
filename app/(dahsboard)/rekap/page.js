@@ -29,13 +29,13 @@ const BULAN_LIST = [
 ];
 
 const SEMESTER_LIST = [
-  { value: "1", label: "Semester 1 (Juli–Desember)" },
-  { value: "2", label: "Semester 2 (Januari–Juni)" },
+  { value: "Semester 1", label: "Semester 1 (Juli–Desember)" },
+  { value: "Semester 2", label: "Semester 2 (Januari–Juni)" },
 ];
 
 const BULAN_SEMESTER = {
-  "1": ["07", "08", "09", "10", "11", "12"],
-  "2": ["01", "02", "03", "04", "05", "06"],
+  "Semester 1": ["07", "08", "09", "10", "11", "12"],
+  "Semester 2": ["01", "02", "03", "04", "05", "06"],
 };
 
 const DEFAULT_PERSEN = {
@@ -172,20 +172,25 @@ export default function RekapPage() {
       return;
     }
 
-    const tahun = filterAbsenTahun;
+    const [tahunAwal, tahunAkhir] = filterAbsenTahun.split("/");
+
     let tanggalMulai, tanggalSelesai;
 
     if (filterAbsenMode === "bulanan") {
-      const bulan   = filterAbsenBulan;
-      const lastDay = new Date(parseInt(tahun), parseInt(bulan), 0).getDate();
-      tanggalMulai  = `${tahun}-${bulan}-01`;
-      tanggalSelesai = `${tahun}-${bulan}-${lastDay}`;
+      // Tentukan tahun yang tepat berdasarkan bulan
+      // Semester 1: Juli(07)–Des(12) = tahun awal | Semester 2: Jan(01)–Jun(06) = tahun akhir
+      const tahunBulan = parseInt(filterAbsenBulan) >= 7 ? tahunAwal : tahunAkhir;
+      const lastDay = new Date(parseInt(tahunBulan), parseInt(filterAbsenBulan), 0).getDate();
+      tanggalMulai   = `${tahunBulan}-${filterAbsenBulan}-01`;
+      tanggalSelesai = `${tahunBulan}-${filterAbsenBulan}-${lastDay}`;
     } else {
       const bulanSemester = BULAN_SEMESTER[filterAbsenSemester];
-      tanggalMulai  = `${tahun}-${bulanSemester[0]}-01`;
+      // Semester 1 pakai tahunAwal, Semester 2 pakai tahunAkhir
+      const tahunSmt = filterAbsenSemester === "Semester 1" ? tahunAwal : tahunAkhir;
+      tanggalMulai  = `${tahunSmt}-${bulanSemester[0]}-01`;
       const bulanAkhir = bulanSemester[bulanSemester.length - 1];
-      const lastDay = new Date(parseInt(tahun), parseInt(bulanAkhir), 0).getDate();
-      tanggalSelesai = `${tahun}-${bulanAkhir}-${lastDay}`;
+      const lastDay = new Date(parseInt(tahunSmt), parseInt(bulanAkhir), 0).getDate();
+      tanggalSelesai = `${tahunSmt}-${bulanAkhir}-${lastDay}`;
     }
 
     const siswaIds = siswaData.map((s) => s.id);
@@ -560,7 +565,7 @@ export default function RekapPage() {
                     <label className="form-label">Tahun Ajaran</label>
                     <select className="form-input form-select" value={filterAbsenTahun} onChange={(e) => setFilterAbsenTahun(e.target.value)}>
                       <option value="">-- Pilih Tahun --</option>
-                      {tahunList.map((t) => <option key={t} value={t.split("/")[0]}>{t}</option>)}
+                      {tahunList.map((t) => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
                 </div>

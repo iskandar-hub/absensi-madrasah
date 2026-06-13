@@ -426,73 +426,179 @@ export default function SiswaPage() {
 
   // ── Parse file Excel ───────────────────────────────────────
   function handleFileExcel(e) {
-  const file = e.target.files?.[0]
-  if (!file) return
-  const reader = new FileReader()
-  reader.onload = (ev) => {
-    try {
-      const wb   = XLSX.read(ev.target.result, { type: 'binary' })
-      const ws   = wb.Sheets[wb.SheetNames[0]]
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      try {
+        const wb   = XLSX.read(ev.target.result, { type: 'binary' })
+        const ws   = wb.Sheets[wb.SheetNames[0]]
 
-      // Ambil data as array of arrays (bukan object)
-      // sehingga kita bisa akses berdasarkan POSISI KOLOM
-      // bukan nama header
-      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
+        // Ambil semua data sebagai array of arrays
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
 
-      const errors  = []
-      const parsed  = []
-
-      // Mulai dari baris ke-2 (index 1) — skip header
-      for (let i = 1; i < rows.length; i++) {
-        const row = rows[i]
-
-        // Kolom A = index 0 (nomor urut)
-        // Kolom B = index 1 (nama siswa)
-        // Kolom C = index 2 (nisn)
-        // Kolom J = index 9 (jenis kelamin)
-        const noUrut = row[0]
-        const nama   = (row[1] || '').toString().trim()
-        const nisn   = (row[2] || '').toString().trim()
-        const jkRaw  = (row[9] || '').toString().trim()
-
-        // Skip baris kosong (nama kosong)
-        if (!nama) continue
-
-        // Normalisasi jenis kelamin
-        // Terima: L, P, Laki-laki, Perempuan, laki-laki, perempuan, dll
-        let jk = ''
-        const jkLower = jkRaw.toLowerCase()
-        if (jkLower === 'l' || jkLower === 'laki-laki' || jkLower === 'laki laki' || jkLower === 'pria') {
-          jk = 'L'
-        } else if (jkLower === 'p' || jkLower === 'perempuan' || jkLower === 'wanita') {
-          jk = 'P'
-        } else if (jkRaw !== '') {
-          errors.push(`Baris ${i + 1}: Jenis kelamin "${jkRaw}" tidak dikenali (gunakan L/P atau Laki-laki/Perempuan)`)
+        if (rows.length < 2) {
+          addToast('File Excel kosong atau tidak memiliki data', 'error')
+          return
         }
 
-        parsed.push({
-          nomor_urut:    Number(noUrut) || i,
-          nama,
-          nisn,
-          jenis_kelamin: jk,
-        })
-      }
+        // ── Cari baris header (baris pertama yang tidak kosong) ──
+        // Cari sampai baris ke-5 saja, antisipasi ada judul di atas
+        let headerRowIdx = -1
+        let colMap = { nomor: -1, nama: -1, nisn: -1, jk: -1 }
 
-      if (parsed.length === 0) {
-        addToast('Tidak ada data siswa yang bisa dibaca dari file ini', 'error')
-        return
-      }
+        for (let ri = 0; ri < Math.min(rows.length, 5); ri++) {
+          const row = rows[ri]
+          const tempMap = { nomor: -1, nama: -1, nisn: -1, jk: -1 }
 
-      setImportRows(parsed)
-      setImportErrors(errors)
-      setShowImport(true)
-    } catch (err) {
-      addToast('Gagal membaca file Excel: ' + err.message, 'error')
+          for (let ci = 0; ci < row.length; ci++) {
+            const cell = (row[ci] || '').toString().toLowerCase().trim()
+              .replace(/[.\s]+/g, ' ') // normalisasi spasi & titik
+
+            // Deteksi kolom Nomor Urut
+            if (tempMap.nomor === -1 && (
+              cell === 'no' ||
+              cell === 'no ' ||
+              cell === 'nomor' ||
+              cell === 'nomor urut' ||
+              cell === 'no urut' ||
+              cell === 'nomer' ||
+              cell === 'nomer urut' ||
+              cell === 'urut' ||
+              cell === 'nomor absen' ||
+              cell === 'no absen'
+            )) {
+              tempMap.nomor = ci
+            }
+
+            // Deteksi kolom Nama
+            if (tempMap.nama === -1 && (
+              cell === 'nama' ||
+              cell === 'nama siswa' ||
+              cell === 'nama lengkap' ||
+              cell === 'nama peserta didik' ||
+              cell === 'nama murid'
+            )) {
+              tempMap.nama = ci
+            }
+
+            // Deteksi kolom NISN
+            if (tempMap.nisn === -1 && (
+              cell === 'nisn' ||
+              cell === 'nis' ||
+              cell === 'no induk' ||
+              cell === 'nomor induk'
+            )) {
+              tempMap.nisn = ci
+            }
+
+            // Deteksi kolom Jenis Kelamin
+            if (tempMap.jk === -1 && (
+              cell === 'jk' ||
+              cell === 'j k' ||
+              cell === 'jenis kelamin' ||
+              cell === 'kelamin' ||
+              cell === 'gender' ||
+              cell === 'l/p' ||
+              cell === 'p/l' ||
+              cell === 'sex'
+            )) {
+              tempMap.jk = ci
+            }
+          }
+
+          // Baris ini dianggap header jika minimal kolom "nama" ditemukan
+          if (tempMap.nama !== -1) {
+            headerRowIdx = ri
+            colMap = tempMap
+            break
+          }
+        }
+
+        // Kolom nama wajib ditemukan
+        if (colMap.nama === -1) {
+          addToast(
+            'Kolom "Nama Siswa" tidak ditemukan. Pastikan header kolom mengandung kata: Nama / Nama Siswa / Nama Lengkap',
+            'error'
+          )
+          return
+        }
+
+        // ── Info kolom yang berhasil dideteksi (untuk debugging) ──
+        const kolomDitemukan = []
+        if (colMap.nomor !== -1) kolomDitemukan.push(`Nomor Urut (kolom ${colMap.nomor + 1})`)
+        kolomDitemukan.push(`Nama (kolom ${colMap.nama + 1})`)
+        if (colMap.nisn  !== -1) kolomDitemukan.push(`NISN (kolom ${colMap.nisn + 1})`)
+        if (colMap.jk    !== -1) kolomDitemukan.push(`Jenis Kelamin (kolom ${colMap.jk + 1})`)
+        console.info('[Import] Kolom terdeteksi:', kolomDitemukan.join(', '))
+
+        // ── Baca data mulai baris setelah header ──────────────────
+        const errors  = []
+        const parsed  = []
+
+        for (let i = headerRowIdx + 1; i < rows.length; i++) {
+          const row = rows[i]
+
+          const nama   = (colMap.nama  !== -1 ? row[colMap.nama]  : '').toString().trim()
+          const noUrut = (colMap.nomor !== -1 ? row[colMap.nomor] : '').toString().trim()
+          const nisn   = (colMap.nisn  !== -1 ? row[colMap.nisn]  : '').toString().trim()
+          const jkRaw  = (colMap.jk    !== -1 ? row[colMap.jk]    : '').toString().trim()
+
+          // Skip baris kosong
+          if (!nama) continue
+
+          // Normalisasi jenis kelamin
+          let jk = ''
+          const jkLower = jkRaw.toLowerCase()
+          if (
+            jkLower === 'l' ||
+            jkLower === 'laki-laki' ||
+            jkLower === 'laki laki' ||
+            jkLower === 'pria'
+          ) {
+            jk = 'L'
+          } else if (
+            jkLower === 'p' ||
+            jkLower === 'perempuan' ||
+            jkLower === 'wanita'
+          ) {
+            jk = 'P'
+          } else if (jkRaw !== '') {
+            errors.push(
+              `Baris ${i + 1}: Jenis kelamin "${jkRaw}" tidak dikenali (gunakan L / P / Laki-laki / Perempuan)`
+            )
+          }
+
+          parsed.push({
+            nomor_urut:    Number(noUrut) || (parsed.length + 1),
+            nama,
+            nisn,
+            jenis_kelamin: jk,
+          })
+        }
+
+        if (parsed.length === 0) {
+          addToast('Tidak ada data siswa yang bisa dibaca dari file ini', 'error')
+          return
+        }
+
+        // Tambahkan info kolom yang tidak terdeteksi ke warnings
+        const warnings = [...errors]
+        if (colMap.nomor === -1) warnings.unshift('⚠️ Kolom Nomor Urut tidak ditemukan — akan diisi otomatis urut 1, 2, 3...')
+        if (colMap.nisn  === -1) warnings.unshift('⚠️ Kolom NISN tidak ditemukan — NISN akan dikosongkan')
+        if (colMap.jk    === -1) warnings.unshift('⚠️ Kolom Jenis Kelamin tidak ditemukan — akan dikosongkan')
+
+        setImportRows(parsed)
+        setImportErrors(warnings)
+        setShowImport(true)
+
+      } catch (err) {
+        addToast('Gagal membaca file Excel: ' + err.message, 'error')
+      }
     }
+    reader.readAsBinaryString(file)
+    e.target.value = ''
   }
-  reader.readAsBinaryString(file)
-  e.target.value = ''
-}
 
   // ── Proses import ke Supabase ──────────────────────────────
   async function handleImport() {
