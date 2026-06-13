@@ -332,7 +332,7 @@ export default function SekolahPage() {
                   <input
                     type="text"
                     className="input"
-                    placeholder="Contoh: Lombok Timur"
+                    placeholder="Contoh: Banggai"
                     value={form.kabupaten}
                     onChange={(e) =>
                       setForm({
