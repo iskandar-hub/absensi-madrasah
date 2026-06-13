@@ -47,7 +47,6 @@ export default function EditJurnalPage() {
   const router   = useRouter();
   const params   = useParams();
   const jurnalId = params.id;
-  console.log("jurnalId:", jurnalId);
 
   const [user, setUser]         = useState(null);
   const [form, setForm]         = useState(EMPTY_FORM);
@@ -74,6 +73,7 @@ export default function EditJurnalPage() {
         supabase
           .from("classes")
           .select("id, nama_kelas, tingkat")
+          .eq("user_id", user.id)
           .order("nama_kelas"),
 
         supabase
